@@ -1,0 +1,38 @@
+<div class="container mt-2" id="main">
+  <div class="card mt-2 border">
+    <div class="card-header fw-bold">
+      密码设置
+    </div>
+    <div class="card-body">
+      <form action="/setting/password" method="POST">
+        <div class="form-group mb-2">
+          <label for="inputPassword">设置密码</label>
+          <input type="password" class="form-control" id="inputPassword" placeholder="********" name="password">
+        </div>
+        <div class="form-group mb-2">
+          <label for="inputRepeatePassword">重复密码</label>
+          <input type="password" class="form-control" id="inputRepeatePassword" placeholder="********" name="repeated">
+        </div>
+        <button type="submit" class="btn btn-primary">更新密码</button>
+      </form>
+    </div>
+  </div>
+  <div class="card mt-2 border">
+    <div class="card-header fw-bold">
+      Mastodon 配置
+    </div>
+    <div class="card-body">
+      <form action="/setting/mastodon" method="POST">
+        <div class="form-group mb-2">
+          <label for="inputInstance">实例网址</label>
+          <input type="text" class="form-control" id="inputInstance" name="instance" value="{{.Instance}}">
+        </div>
+        <div class="form-group mb-2">
+          <label for="inputAccessToken">AccessToken</label>
+          <input type="text" class="form-control" id="inputAccessToken" name="accesstoken" value="{{.AccessToken}}">
+        </div>
+        <button type="submit" class="btn btn-primary">更新配置</button>
+      </form>
+    </div>
+  </div>
+</div>

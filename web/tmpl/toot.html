@@ -1,0 +1,167 @@
+<div class="container mt-3" x-data="data()" id="main">
+    <div class="mb-3">
+        <label for="tootContentTextarea" class="form-label">
+            嘟嘟
+            <span x-show="tootContent.length > 0">
+                &nbsp;(<span x-text="tootContent.length"></span> 字)
+            </span>
+        </label>
+        <textarea class="form-control" id="tootContentTextarea" rows="4" x-model="tootContent"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label for="formFileMultiple" class="form-label">图片</label>
+        <input class="form-control" type="file" id="formFileMultiple" multiple accept="image/*"
+            @change="uploadSelectHandler">
+    </div>
+
+    <div class="mb-3">
+        <label for="formDelaySelect" class="form-label">延迟发送</label>
+        <select class="form-select" id="formDelaySelect" aria-label="delay send" x-model="delaySec">
+            <option value="0" selected>无延迟</option>
+            <option value="60">1 分钟</option>
+            <option value="180">3 分钟</option>
+            <option value="600">10 分钟</option>
+            <option value="1800">30 分钟</option>
+            <option value="3600">1 小时</option>
+            <option value="7200">2 小时</option>
+            <option value="10800">3 小时</option>
+            <option value="21600">6 小时</option>
+            <option value="43200">12 小时</option>
+            <option value="86400">1 天</option>
+            <option value="259200">3 天</option>
+            <option value="864000">10 天</option>
+            <option value="2592000">30 天</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <button type="button" class="btn btn-primary" @click="sendTootHandler">嘟嘟！</button>
+        <button type="button" class="btn btn-light" @click="resetHandler">重置</button>
+    </div>
+
+    <div class="mb-3" x-show="imgList.length > 0">
+        <label class="form-label">
+            图片预览
+            (原图 <span x-text="beforeSize.formatBytes()"></span> ,压缩后<span x-text="afterSize.formatBytes()"></span>)
+        </label>
+        <div>
+            <template x-for="imgItem in imgList" :key="imgItem">
+                <img :src="imgItem" class="img-thumbnail m-1" style="height:200px">
+            </template>
+        </div>
+    </div>
+</div>
+<script>
+    const max_image_size = 2160;
+
+    Number.prototype.formatBytes = function () {
+        var units = ['B', 'KB', 'MB', 'GB', 'TB'],
+            bytes = this,
+            i;
+
+        for (i = 0; bytes >= 1024 && i < 4; i++) {
+            bytes /= 1024;
+        }
+
+        return bytes.toFixed(2) + units[i];
+    }
+
+    function dataURLtoFile(dataurl, filename) {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], filename, { type: mime });
+    }
+
+    function resizeImage(file, max_size) {
+        return new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = event => {
+                var image = new Image();
+                image.onload = imageEvent => {
+                    var w = image.width;
+                    var h = image.height;
+
+                    if (w > h) {
+                        if (w > max_size) { h *= max_size / w; w = max_size; }
+                    } else { if (h > max_size) { w *= max_size / h; h = max_size; } }
+
+                    var canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(image, 0, 0, w, h);
+
+                    var result = canvas.toDataURL("image/jpeg", 0.8)
+                    resolve({
+                        size: file.size,
+                        result: result,
+                        compressSize: Math.round(result.length * 3 / 4),
+                    });
+                }
+                image.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function data() {
+        return {
+            imgList: [],
+            tootContent: "",
+            beforeSize: 0,
+            afterSize: 0,
+            delaySec: 0,
+            uploadSelectHandler: function (event) {
+                var items = event.target.files;
+                if (items.length > 0) {
+                    this.imgList = [];
+                    this.beforeSize = 0;
+                    this.afterSize = 0;
+                    for (var i = 0; i < items.length; i++) {
+                        resizeImage(items[i], max_image_size)
+                            .then(ret => {
+                                this.beforeSize += ret.size;
+                                this.afterSize += ret.compressSize;
+                                this.imgList.push(ret.result);
+                            });
+                    }
+                }
+            },
+            sendTootHandler: function (event) {
+                if (confirm("确定发送这条嘟嘟?")) {
+                    const fd = new FormData()
+                    fd.append('toot', this.tootContent);
+                    fd.append('delay', this.delaySec);
+
+                    for (var i = 0; i < this.imgList.length; i++) {
+                        const fileName = new Date().getTime() + '_' + i + '.jpg';
+                        const fileObj = dataURLtoFile(this.imgList[i], fileName);
+                        fd.append('media', fileObj);
+                    }
+
+                    fetch('/toot', {
+                        method: 'POST',
+                        body: fd,
+                    })
+                        .then(res => res.text())
+                        .then(res => {
+                            alert("OK");
+                            this.resetHandler();
+                        })
+                        .catch(err => alert(err));
+                }
+            },
+            resetHandler: function () {
+                this.imgList = [];
+                this.tootContent = "";
+                this.beforeSize = 0;
+                this.afterSize = 0;
+                this.delaySec = 0;
+                document.getElementById("formFileMultiple").value = null;
+            }
+        }
+    }
+</script>

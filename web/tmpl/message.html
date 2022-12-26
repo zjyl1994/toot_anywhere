@@ -1,0 +1,12 @@
+<div class="container mt-2" id="main">
+    <div class="card {{if .Color}}border-{{.Color}}{{end}}">
+        <div class="card-header">
+            {{.PageTitle}}
+        </div>
+        <div class="card-body">
+          <h5 class="card-title">{{.Title}}</h5>
+          <p class="card-text">{{.Content}}</p>
+          <button class="btn btn-outline-primary" onclick="window.history.back();">回到上一页</button>
+        </div>
+    </div>
+</div>
